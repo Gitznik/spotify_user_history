@@ -1,2 +1,4 @@
 *.code-workspace
 __pycache__
+*_secrets.yml
+env
