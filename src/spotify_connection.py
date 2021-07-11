@@ -1,15 +1,16 @@
 import requests
 import base64
-import json
 from abc import ABC, abstractmethod
 
-from config.read_config import YamlConfig
+from .config.parse_config_files import ClientConfig, AuthConfig
+from ._auth.refreshing_token import RefreshingToken
 
 auth_url = 'https://accounts.spotify.com/authorize'
 token_url = 'https://accounts.spotify.com/api/token'
 base_url = 'https://api.spotify.com/v1/'
 
-config = YamlConfig()
+client_config = ClientConfig()
+auth_config = AuthConfig()
 
 class SpotifyConnection(ABC):
     @abstractmethod
@@ -17,6 +18,19 @@ class SpotifyConnection(ABC):
         pass
 
     @abstractmethod
+    def get_request():
+        pass
+
+class AuthorizationCodeFlow(SpotifyConnection):
+    def __init__(self, scope: str = 'user-read-private') -> None:
+        self.auth = self.authenticate(scope)
+
+    def authenticate(self, scope):
+        return RefreshingToken(
+            client_config = client_config, 
+            auth_config = auth_config,
+            scope = scope)
+
     def get_request():
         pass
 
@@ -28,7 +42,7 @@ class ClientCredentialsFlow(SpotifyConnection):
         }
 
     def auth_string_creator(self) -> None:
-        client = f'{config.client_id}:{config.client_secret}'
+        client = f'{client_config.client_id}:{client_config.client_secret}'
         return base64.b64encode(
             client.encode('ascii')
             ).decode('ascii')
@@ -55,7 +69,3 @@ class SpotifyInteraction:
             endpoint= 'https://api.spotify.com/v1/playlists/',
             id = playlistId
         )
-
-
-test = SpotifyInteraction()
-print(json.dumps(test.get_playlist('4SqPk9SsCfHGHoioVmITC1').json(), indent=2))
