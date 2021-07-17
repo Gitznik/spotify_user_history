@@ -1,18 +1,17 @@
 import requests
-import base64
 from abc import ABC, abstractmethod
 
-from .config.parse_config_files import ClientConfig, AuthConfig
-from ._auth.refreshing_token import RefreshingToken
+from .config.parse_config_files import AuthConfig
+from .client import Client
+from ._auth.refreshing_token import RefreshingToken, AuthCodeRequest
 
 auth_url = 'https://accounts.spotify.com/authorize'
 token_url = 'https://accounts.spotify.com/api/token'
 base_url = 'https://api.spotify.com/v1/'
 
-client_config = ClientConfig()
-auth_config = AuthConfig()
-
 class SpotifyConnection(ABC):
+    client = Client()
+
     @abstractmethod
     def authenticate():
         pass
@@ -22,14 +21,25 @@ class SpotifyConnection(ABC):
         pass
 
 class AuthorizationCodeFlow(SpotifyConnection):
+    auth_config = AuthConfig()
     def __init__(self, scope: str = 'user-read-private') -> None:
-        self.auth = self.authenticate(scope)
+        self.refreshing_token = self.authenticate(scope)
+
+    def get_auth_code(self, scope):
+        return AuthCodeRequest(
+            client = self.client, 
+            auth_config = self.auth_config,
+            scope = scope)
+
+    def get_refreshing_token(self, auth_code_request):
+        return RefreshingToken(
+            auth_code_request= auth_code_request
+        )
 
     def authenticate(self, scope):
-        return RefreshingToken(
-            client_config = client_config, 
-            auth_config = auth_config,
-            scope = scope)
+        auth_code_request = self.get_auth_code(scope)
+        return self.get_refreshing_token(
+            auth_code_request=auth_code_request)
 
     def get_request():
         pass
@@ -41,14 +51,8 @@ class ClientCredentialsFlow(SpotifyConnection):
             "Authorization": "Bearer " + self.extract_token()
         }
 
-    def auth_string_creator(self) -> None:
-        client = f'{client_config.client_id}:{client_config.client_secret}'
-        return base64.b64encode(
-            client.encode('ascii')
-            ).decode('ascii')
-
     def authenticate(self):
-        headers = {'Authorization': f'Basic {self.auth_string_creator()}'}
+        headers = {'Authorization': f'Basic {self.client.get_auth_string()}'}
         data = {'grant_type': 'client_credentials'}
         return requests.post(token_url, headers = headers, data = data).json()
 
