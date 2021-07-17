@@ -1,3 +1,4 @@
+import json
 import yaml
 from urllib.parse import urlencode, urlparse, parse_qs
 from abc import ABC, abstractmethod
@@ -8,17 +9,34 @@ from ..config.parse_config_files import AuthConfig
 from ..client import Client
 
 class Token(ABC):
-    token_id: str
-    expires: str
+    def _set_access_token_expiry(self, expires_in):
+        expires_in_delta = datetime.timedelta(seconds = expires_in)
+        return datetime.datetime.now(datetime.timezone.utc) + expires_in_delta
+
+    def is_expired(self):
+        return self.expires_at < datetime.datetime.now(datetime.timezone.utc)
 
 class AccessToken(Token):
-    def __init__(self, acess_token_response) -> None:
-        self.access_token_response = acess_token_response
-        self.acc
+    created_at = datetime.datetime.now()
+    def __init__(self, acess_token_content) -> None:
+        self.access_token_content = acess_token_content
+        self.expires_at = self._set_access_token_expiry(
+            self.access_token_content['expires_in'])
+        self.save_tokens()
 
     @property
     def access_token(self):
-        return self.access_token_response
+        return self.access_token_content['access_token']
+
+    @property
+    def refresh_token(self):
+        return self.access_token_content['refresh_token']
+
+    def save_tokens(self):
+        token_information = self.access_token_content
+        token_information['expires_at'] = self.expires_at.strftime("%Y-%m-%d %H:%M:%S %Z")
+        with open('tokens.json', 'w') as file:
+            json.dump(token_information, file, indent=2)       
             
 
 class AuthCodeRequest:
@@ -74,20 +92,12 @@ class RefreshingToken:
             self, 
             auth_code_request: AuthCodeRequest) -> None:
         self.auth_code_request = auth_code_request
-        self.access_token_content = self._return_access_token_response().json()
+        self.access_token = self._return_access_token()
 
-    def get_access_token_content(self):
-        if self.expires_at < datetime.datetime.now():
-            self.access_token_content = self._return_access_token_response(refresh = True).json()
-        return self.access_token_content   
-
-    @property
-    def access_token(self):
-        return self.get_access_token_content()['access_token']
-
-    @property
-    def refresh_token(self):
-        return self.get_access_token_content()['refresh_token']
+    def get_access_token(self):
+        if self.access_token.is_expired():
+            self.access_token = self._return_access_token(refresh = True)
+        return self.access_token.access_token
 
     def _request_access_token(self, refresh = False):
         if refresh:
@@ -112,18 +122,14 @@ class RefreshingToken:
             headers = headers,
             )
 
-    def _return_access_token_response(self, refresh = False):
-        access_token = self._request_access_token(refresh)
+    def _return_access_token(self, refresh = False):
+        access_token_response = self._request_access_token(refresh)
 
-        if access_token.status_code == 400:
-            if access_token.json()['error_description'] == \
+        if access_token_response.status_code == 400:
+            if access_token_response.json()['error_description'] == \
                     'Authorization code expired' or 'Invalid authorization code':
                 self.auth_code_request.auth_config.remove_auth_code(
                     self.auth_code_request.scope)
-                access_token = self._request_access_token()
-        self._set_access_token_expiry(access_token.json()['expires_in'])
-        return access_token
+                access_token_response = self._request_access_token()
 
-    def _set_access_token_expiry(self, expires_in):
-        expires_in_delta = datetime.timedelta(seconds = expires_in)
-        self.expires_at = datetime.datetime.now() + expires_in_delta
+        return AccessToken(access_token_response.json())
