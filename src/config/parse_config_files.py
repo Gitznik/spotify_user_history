@@ -34,10 +34,14 @@ class AuthConfig(YamlConfig):
     def read_secrets(self):
         config = self.load_config()
         self.config = config or {}
-        self.scopes = config.values() if config else []
+        self.scopes = config.keys() if config else []
 
     def add_auth_code(self, scope: str, auth_code: str) -> None:
         self.config[scope] = auth_code
+        self.save_auth_codes()
+
+    def remove_auth_code(self, scope: str) -> None:
+        self.config.pop(scope)
         self.save_auth_codes()
 
     def save_auth_codes(self):
