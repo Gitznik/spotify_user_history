@@ -3,15 +3,18 @@ from abc import ABC, abstractmethod
 import datetime
 
 class Token(ABC):
+    
+    def _get_now(self):
+        return datetime.datetime.now(datetime.timezone.utc)
+
     def _set_access_token_expiry(self, expires_in):
         expires_in_delta = datetime.timedelta(seconds = expires_in)
-        return datetime.datetime.now(datetime.timezone.utc) + expires_in_delta
+        return self._get_now() + expires_in_delta
 
     def is_expired(self):
-        return self.expires_at < datetime.datetime.now(datetime.timezone.utc)
+        return self.expires_at < self._get_now()
 
 class AccessToken(Token):
-    created_at = datetime.datetime.now()
     def __init__(self, access_token_content, load_from_cache = False) -> None:
         self.access_token_content = access_token_content
         if not load_from_cache:
