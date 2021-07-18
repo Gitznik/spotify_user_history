@@ -24,6 +24,9 @@ class AuthorizationCodeFlow(SpotifyConnection):
     auth_config = AuthConfig()
     def __init__(self, scope: str = 'user-read-private') -> None:
         self.refreshing_token = self.authenticate(scope)
+        self.get_req_header = {
+            "Authorization": "Bearer " + self.refreshing_token.get_access_token()
+        }
 
     def get_auth_code(self, scope):
         return AuthCodeRequest(
@@ -41,8 +44,9 @@ class AuthorizationCodeFlow(SpotifyConnection):
         return self.get_refreshing_token(
             auth_code_request=auth_code_request)
 
-    def get_request():
-        pass
+    def get_request(self, endpoint:str, id: str) -> dict:
+        url = f'{endpoint}{id}'
+        return requests.get(url=url, headers=self.get_req_header)
 
 class ClientCredentialsFlow(SpotifyConnection):
     def __init__(self) -> None:
@@ -65,7 +69,10 @@ class ClientCredentialsFlow(SpotifyConnection):
 
 
 class SpotifyInteraction:
-    def __init__(self, connection: SpotifyConnection = ClientCredentialsFlow()) -> None:
+    def __init__(
+            self, 
+            connection: SpotifyConnection = AuthorizationCodeFlow(
+                scope = 'user-read-private')) -> None:
         self.conn = connection
 
     def get_playlist(self, playlistId):
