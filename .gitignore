@@ -2,3 +2,6 @@
 __pycache__
 *_secrets.yml
 env
+.cache
+src/config/tokens.json
+test.py

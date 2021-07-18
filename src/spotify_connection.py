@@ -1,17 +1,17 @@
 import requests
-import base64
-import json
 from abc import ABC, abstractmethod
 
-from config.read_config import YamlConfig
+from .config.parse_config_files import AuthConfig
+from .client import Client
+from ._auth.auth_flows import RefreshingToken, AuthCodeRequest
 
 auth_url = 'https://accounts.spotify.com/authorize'
 token_url = 'https://accounts.spotify.com/api/token'
 base_url = 'https://api.spotify.com/v1/'
 
-config = YamlConfig()
-
 class SpotifyConnection(ABC):
+    client = Client()
+
     @abstractmethod
     def authenticate():
         pass
@@ -20,6 +20,34 @@ class SpotifyConnection(ABC):
     def get_request():
         pass
 
+class AuthorizationCodeFlow(SpotifyConnection):
+    auth_config = AuthConfig()
+    def __init__(self, scope: str = 'user-read-private') -> None:
+        self.refreshing_token = self.authenticate(scope)
+        self.get_req_header = {
+            "Authorization": "Bearer " + self.refreshing_token.get_access_token()
+        }
+
+    def get_auth_code(self, scope):
+        return AuthCodeRequest(
+            client = self.client, 
+            auth_config = self.auth_config,
+            scope = scope)
+
+    def get_refreshing_token(self, auth_code_request):
+        return RefreshingToken(
+            auth_code_request= auth_code_request
+        )
+
+    def authenticate(self, scope):
+        auth_code_request = self.get_auth_code(scope)
+        return self.get_refreshing_token(
+            auth_code_request=auth_code_request)
+
+    def get_request(self, endpoint:str, id: str) -> dict:
+        url = f'{endpoint}{id}'
+        return requests.get(url=url, headers=self.get_req_header)
+
 class ClientCredentialsFlow(SpotifyConnection):
     def __init__(self) -> None:
         self.token_response = self.authenticate()
@@ -27,14 +55,8 @@ class ClientCredentialsFlow(SpotifyConnection):
             "Authorization": "Bearer " + self.extract_token()
         }
 
-    def auth_string_creator(self) -> None:
-        client = f'{config.client_id}:{config.client_secret}'
-        return base64.b64encode(
-            client.encode('ascii')
-            ).decode('ascii')
-
     def authenticate(self):
-        headers = {'Authorization': f'Basic {self.auth_string_creator()}'}
+        headers = {'Authorization': f'Basic {self.client.get_auth_string()}'}
         data = {'grant_type': 'client_credentials'}
         return requests.post(token_url, headers = headers, data = data).json()
 
@@ -47,7 +69,10 @@ class ClientCredentialsFlow(SpotifyConnection):
 
 
 class SpotifyInteraction:
-    def __init__(self, connection: SpotifyConnection = ClientCredentialsFlow()) -> None:
+    def __init__(
+            self, 
+            connection: SpotifyConnection = AuthorizationCodeFlow(
+                scope = 'user-read-private')) -> None:
         self.conn = connection
 
     def get_playlist(self, playlistId):
@@ -55,7 +80,3 @@ class SpotifyInteraction:
             endpoint= 'https://api.spotify.com/v1/playlists/',
             id = playlistId
         )
-
-
-test = SpotifyInteraction()
-print(json.dumps(test.get_playlist('4SqPk9SsCfHGHoioVmITC1').json(), indent=2))
