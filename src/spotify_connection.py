@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 from .config.parse_config_files import AuthConfig
 from .client import Client
-from ._auth.refreshing_token import RefreshingToken, AuthCodeRequest
+from ._auth.auth_flows import RefreshingToken, AuthCodeRequest
 
 auth_url = 'https://accounts.spotify.com/authorize'
 token_url = 'https://accounts.spotify.com/api/token'
