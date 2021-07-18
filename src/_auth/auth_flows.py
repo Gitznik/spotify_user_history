@@ -22,21 +22,21 @@ class AuthCodeRequest:
     def auth_code(self) -> str:
         if self.scope in self.auth_config.scopes:
             return self.auth_config.config[self.scope]
-        auth_code = self.prompt_user_authorization()
+        auth_code = self._prompt_user_authorization()
         self.auth_config.add_auth_code(
             scope = self.scope,
             auth_code=auth_code
         )
         return auth_code
 
-    def prompt_user_authorization(self):
-        auth_url = self.create_auth_url()
+    def _prompt_user_authorization(self):
+        auth_url = self._create_auth_url()
         print(f'Please visit this URL: {auth_url}')
         redirected_url = input(
             'Please paste the URL you were redirected to:').strip()
-        return self.parse_url_param(redirected_url, 'code')
+        return self._parse_url_param(redirected_url, 'code')
 
-    def create_auth_url(self) -> str:
+    def _create_auth_url(self) -> str:
         params = {
             'client_id': self.client.client_config.client_id,
             'response_type': 'code',
@@ -46,7 +46,7 @@ class AuthCodeRequest:
         }
         return self.auth_url + '?' + urlencode(params)
 
-    def parse_url_param(self, url, param):
+    def _parse_url_param(self, url, param):
         query = urlparse(url).query
         code = parse_qs(query).get(param, None)
         return code[0]
