@@ -1,6 +1,7 @@
 import requests
 from abc import ABC, abstractmethod
 
+from .logging.logger import ApiLogger
 from .config.parse_config_files import AuthConfig
 from .client import Client
 from ._auth.auth_flows import RefreshingToken, AuthCodeRequest
@@ -55,6 +56,7 @@ class ClientCredentialsFlow(SpotifyConnection):
             "Authorization": "Bearer " + self.extract_token()
         }
 
+    @ApiLogger('Athenticate in Client Credentials Flow')
     def authenticate(self):
         headers = {'Authorization': f'Basic {self.client.get_auth_string()}'}
         data = {'grant_type': 'client_credentials'}
@@ -62,10 +64,6 @@ class ClientCredentialsFlow(SpotifyConnection):
 
     def extract_token(self) -> str:
         return self.token_response['access_token']
-
-    def get_request(self, endpoint:str, id: str) -> dict:
-        url = f'{endpoint}{id}'
-        return requests.get(url=url, headers=self.get_req_header)
 
 
 class SpotifyInteraction:
@@ -75,6 +73,7 @@ class SpotifyInteraction:
                 scope = 'user-read-private')) -> None:
         self.conn = connection
 
+    @ApiLogger('Sending Playlist Request')
     def get_playlist(self, playlistId):
         return self.conn.get_request(
             endpoint= 'https://api.spotify.com/v1/playlists/',

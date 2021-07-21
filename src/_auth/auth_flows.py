@@ -4,7 +4,8 @@ import json
 
 from ..config.parse_config_files import AuthConfig
 from ..client import Client
-from .tokens import AccessToken  
+from .tokens import AccessToken
+from ..logging.logger import ApiLogger
 
 class AuthCodeRequest:
     auth_url = 'https://accounts.spotify.com/authorize'
@@ -66,6 +67,7 @@ class RefreshingToken:
             self.access_token = self._retrieve_access_token(refresh = True)
         return self.access_token.access_token
 
+    @ApiLogger(msg='Acquire access token')
     def _request_access_token(self, refresh = False):
         if refresh:
             data = {
