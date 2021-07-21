@@ -107,9 +107,8 @@ class RefreshingToken:
 
     def _retrieve_access_token(self, refresh = False):
         if refresh:
-            self._load_new_access_token(refresh)
-        else:
-            try:
-                return self._load_existing_access_token()
-            except:
-                return self._load_new_access_token(refresh)
+            return self._load_new_access_token(refresh)
+        try:
+            return self._load_existing_access_token()
+        except:
+            return self._load_new_access_token(refresh)
