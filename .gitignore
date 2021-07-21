@@ -5,3 +5,4 @@ env
 .cache
 src/config/tokens.json
 test.py
+htmlcov
