@@ -27,6 +27,8 @@ class AuthorizationCodeFlow(SpotifyConnection):
         self.get_req_header = {
             "Authorization": "Bearer " + self.refreshing_token.get_access_token()
         }
+        info_logger.info(f'AuthCodeFlow for scope {scope} successfull')
+
 
     def get_auth_code(self, scope):
         return AuthCodeRequest(
