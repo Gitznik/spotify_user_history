@@ -4,7 +4,8 @@ import json
 
 from ..config.parse_config_files import AuthConfig
 from ..client import Client
-from .tokens import AccessToken  
+from .tokens import AccessToken
+from ..logging.logger import ApiLogger, info_logger, debug_logger, api_logger
 
 class AuthCodeRequest:
     auth_url = 'https://accounts.spotify.com/authorize'
@@ -14,6 +15,7 @@ class AuthCodeRequest:
             client: Client, 
             auth_config: AuthConfig,
             scope: str) -> None:
+        info_logger.info(f'Creating new Auth Code Request for scope {scope}')
         self.client = client
         self.auth_config = auth_config
         self.scope = scope
@@ -21,6 +23,7 @@ class AuthCodeRequest:
     @property
     def auth_code(self) -> str:
         if self.scope in self.auth_config.scopes:
+            info_logger.info('Aquire existing authentification code')
             return self.auth_config.config[self.scope]
         auth_code = self._prompt_user_authorization()
         self.auth_config.add_auth_code(
@@ -30,6 +33,8 @@ class AuthCodeRequest:
         return auth_code
 
     def _prompt_user_authorization(self):
+        info_logger.info(
+            f'Prompting user for authorization for scope {self.scope}')
         auth_url = self._create_auth_url()
         print(f'Please visit this URL: {auth_url}')
         redirected_url = input(
@@ -37,6 +42,7 @@ class AuthCodeRequest:
         return self._parse_url_param(redirected_url, 'code')
 
     def _create_auth_url(self) -> str:
+        debug_logger.debug('Creating URL for user authorization')
         params = {
             'client_id': self.client.client_config.client_id,
             'response_type': 'code',
@@ -49,6 +55,7 @@ class AuthCodeRequest:
     def _parse_url_param(self, url, param):
         query = urlparse(url).query
         code = parse_qs(query).get(param, None)
+        info_logger.info(f'New authentification code for {self.scope} aquired')
         return code[0]
         
 
@@ -58,14 +65,20 @@ class RefreshingToken:
     def __init__(
             self, 
             auth_code_request: AuthCodeRequest) -> None:
+        info_logger.info(
+            f'Instantiate RefreshingToken for scope {auth_code_request.scope}')
         self.auth_code_request = auth_code_request
         self.access_token = self._retrieve_access_token()
 
     def get_access_token(self):
+        info_logger.info('Request access token')
         if self.access_token.is_expired():
+            info_logger.info(
+                'Access token expired, retrieve new access token')
             self.access_token = self._retrieve_access_token(refresh = True)
         return self.access_token.access_token
 
+    @ApiLogger(msg='Acquire access token')
     def _request_access_token(self, refresh = False):
         if refresh:
             data = {
@@ -93,7 +106,7 @@ class RefreshingToken:
 
     def _load_new_access_token(self, refresh = False):
         access_token_response = self._request_access_token(refresh)
-
+        
         if access_token_response.status_code != 200:
             raise ValueError('Acces token could not be retrieved')
         return AccessToken(access_token_response.json())
@@ -107,8 +120,14 @@ class RefreshingToken:
 
     def _retrieve_access_token(self, refresh = False):
         if refresh:
+            info_logger.info(
+                'Aquire new access token with existing refreshing token')
             return self._load_new_access_token(refresh)
         try:
+            info_logger.info(
+                'Try Load existing access token')
             return self._load_existing_access_token()
         except:
+            info_logger.info(
+                'Aquire new access token without existing refreshing token')
             return self._load_new_access_token(refresh)

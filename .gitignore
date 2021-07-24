@@ -6,3 +6,4 @@ env
 src/config/tokens.json
 test.py
 htmlcov
+*.log
