@@ -5,10 +5,8 @@ from .logging.logger import ApiLogger
 from .config.parse_config_files import AuthConfig
 from .client import Client
 from ._auth.auth_flows import RefreshingToken, AuthCodeRequest
+from .logging.logger import info_logger, debug_logger
 
-auth_url = 'https://accounts.spotify.com/authorize'
-token_url = 'https://accounts.spotify.com/api/token'
-base_url = 'https://api.spotify.com/v1/'
 
 class SpotifyConnection(ABC):
     client = Client()
@@ -24,6 +22,7 @@ class SpotifyConnection(ABC):
 class AuthorizationCodeFlow(SpotifyConnection):
     auth_config = AuthConfig()
     def __init__(self, scope: str = 'user-read-private') -> None:
+        info_logger.info(f'Instantiate AuthCodeFlow for scope {scope}')
         self.refreshing_token = self.authenticate(scope)
         self.get_req_header = {
             "Authorization": "Bearer " + self.refreshing_token.get_access_token()
@@ -50,7 +49,9 @@ class AuthorizationCodeFlow(SpotifyConnection):
         return requests.get(url=url, headers=self.get_req_header)
 
 class ClientCredentialsFlow(SpotifyConnection):
+    token_url = 'https://accounts.spotify.com/api/token'
     def __init__(self) -> None:
+        info_logger.info(f'Instantiate ClientCredentialsFlow')
         self.token_response = self.authenticate()
         self.get_req_header = {
             "Authorization": "Bearer " + self.extract_token()
@@ -60,7 +61,8 @@ class ClientCredentialsFlow(SpotifyConnection):
     def authenticate(self):
         headers = {'Authorization': f'Basic {self.client.get_auth_string()}'}
         data = {'grant_type': 'client_credentials'}
-        return requests.post(token_url, headers = headers, data = data).json()
+        return requests.post(
+            self.token_url, headers = headers, data = data).json()
 
     def extract_token(self) -> str:
         return self.token_response['access_token']
@@ -69,8 +71,8 @@ class ClientCredentialsFlow(SpotifyConnection):
 class SpotifyInteraction:
     def __init__(
             self, 
-            connection: SpotifyConnection = AuthorizationCodeFlow(
-                scope = 'user-read-private')) -> None:
+            connection: SpotifyConnection) -> None:
+        info_logger.info(f'Instantiate SpotifyInteraction')
         self.conn = connection
 
     @ApiLogger('Sending Playlist Request')
