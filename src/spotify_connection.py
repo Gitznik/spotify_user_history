@@ -1,5 +1,6 @@
 import requests
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 
 from .logging.logger import ApiLogger
 from .config.parse_config_files import AuthConfig
@@ -46,9 +47,9 @@ class AuthorizationCodeFlow(SpotifyConnection):
         return self.get_refreshing_token(
             auth_code_request=auth_code_request)
 
-    def get_request(self, endpoint:str, id: str) -> dict:
-        url = f'{endpoint}{id}'
-        return requests.get(url=url, headers=self.get_req_header)
+    def get_request(self, endpoint:str, params: dict = None) -> dict:
+        url = f'{endpoint}'
+        return requests.get(url=url, headers=self.get_req_header, params=params)
 
 class ClientCredentialsFlow(SpotifyConnection):
     token_url = 'https://accounts.spotify.com/api/token'
@@ -80,6 +81,16 @@ class SpotifyInteraction:
     @ApiLogger('Sending Playlist Request')
     def get_playlist(self, playlistId):
         return self.conn.get_request(
-            endpoint= 'https://api.spotify.com/v1/playlists/',
-            id = playlistId
+            endpoint= f'https://api.spotify.com/v1/playlists/{playlistId}',
+        )
+
+    @ApiLogger('Sending Play History Request')
+    def get_play_history(self, start_point_unix_ms: int):
+        params = {
+            'limit': 20,
+            'after': start_point_unix_ms
+        }
+        return self.conn.get_request(
+            endpoint = 'https://api.spotify.com/v1/me/player/recently-played/',
+            params = params,
         )
