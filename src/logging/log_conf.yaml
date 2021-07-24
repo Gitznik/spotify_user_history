@@ -1,7 +1,9 @@
 version: 1
 formatters:
   simple:
-    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format: '%(asctime)s - %(levelname)s - %(message)s'
+  detail:
+    format: '%(asctime)s - %(levelname)s - File: %(filename)s - %(funcName)s() - Line: %(lineno)d -  %(message)s'
 handlers:
   console:
     class: logging.StreamHandler
@@ -15,10 +17,17 @@ handlers:
     when: W0
     backupCount: 4
     filename: var/logs/all.log
+  error_output:
+    class: logging.handlers.TimedRotatingFileHandler
+    level: WARNING
+    formatter: detail
+    when: W0
+    backupCount: 8
+    filename: var/logs/warn_error.log
 loggers:
   infoLogger:
     level: INFO
-    handlers: [console, output]
+    handlers: [console, output, error_output]
     propagate: no
   debugLogger:
     level: DEBUG
@@ -26,7 +35,7 @@ loggers:
     propagate: no
   apiLogger:
     level: INFO
-    handlers: [console, output]
+    handlers: [console, output, error_output]
     propagate: no
 root:
   level: DEBUG
