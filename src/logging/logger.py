@@ -15,10 +15,10 @@ api_logger = logging.getLogger('apiLogger')
 def ApiLogger(msg:str = None):
     def decorator(func: FunctionType):
         def wrapper(*args, **kwargs):
-            api_logger.debug(f'Starting Api Call: {msg}')
+            api_logger.info(f'Starting Api Call: {msg}')
             try:
                 result = func(*args, **kwargs)
-                api_logger.debug(f'Finished Api Call: {msg}')
+                api_logger.info(f'Finished Api Call: {msg}')
                 return result
             except:
                 api_logger.exception(f'Encountered an exception in {func.__name__}')

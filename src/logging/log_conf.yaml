@@ -8,18 +8,25 @@ handlers:
     level: DEBUG
     formatter: simple
     stream: ext://sys.stdout
+  output:
+    class: logging.handlers.TimedRotatingFileHandler
+    level: INFO
+    formatter: simple
+    when: W0
+    backupCount: 4
+    filename: var/logs/all.log
 loggers:
   infoLogger:
+    level: INFO
+    handlers: [console, output]
+    propagate: no
+  debugLogger:
     level: DEBUG
     handlers: [console]
     propagate: no
-  debugLogger:
-    level: Info
-    handlers: [console]
-    propagate: no
   apiLogger:
-    level: debug
-    handlers: [console]
+    level: INFO
+    handlers: [console, output]
     propagate: no
 root:
   level: DEBUG
