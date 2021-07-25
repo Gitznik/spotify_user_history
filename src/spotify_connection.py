@@ -7,6 +7,7 @@ from .config.parse_config_files import AuthConfig
 from .client import Client
 from ._auth.auth_flows import RefreshingToken, AuthCodeRequest
 from .logging.logger import info_logger, debug_logger
+from .spotify_data.dataclasses import SpotifyHistory
 
 
 class SpotifyConnection(ABC):
@@ -85,7 +86,7 @@ class SpotifyInteraction:
         )
 
     @ApiLogger('Sending Play History Request')
-    def get_play_history(self, start_point_unix_ms: int):
+    def _get_play_history_req(self, start_point_unix_ms: int):
         params = {
             'limit': 20,
             'after': start_point_unix_ms
@@ -94,3 +95,8 @@ class SpotifyInteraction:
             endpoint = 'https://api.spotify.com/v1/me/player/recently-played/',
             params = params,
         )
+
+    def get_play_history(self, start_point_unix_ms: int):
+        history_resp = self._get_play_history_req(
+            start_point_unix_ms=start_point_unix_ms)
+        return SpotifyHistory(**history_resp.json())
