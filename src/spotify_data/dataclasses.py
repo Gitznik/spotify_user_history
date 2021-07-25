@@ -4,7 +4,6 @@ from typing import List
 
 from ..logging.logger import info_logger, debug_logger
 
-
 class Config:
     allow_mutation = False
 
@@ -78,6 +77,9 @@ class SpotifyCursor(pydantic.BaseModel):
     def after_datetime(self):
         return datetime.utcfromtimestamp(
             self.after / 1000).strftime("%Y-%m-%d %H:%M:%S")
+
+    class Config:
+        allow_mutation = False
 
 class SpotifyHistory(pydantic.BaseModel):
     items: List[SpotifyHistoryObject]
