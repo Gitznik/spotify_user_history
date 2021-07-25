@@ -23,6 +23,8 @@ class AccessToken(Token):
             info_logger.info('Instantiate fresh Access token')
             self.expires_at = self._set_access_token_expiry(
                 self.access_token_content['expires_in'])
+            if self.access_token_content.get('refresh_token'):
+                self.save_refresh_token(access_token_content['refresh_token'])
         else:
             self.expires_at = datetime.datetime.fromisoformat(
                 access_token_content['expires_at'])
@@ -38,12 +40,18 @@ class AccessToken(Token):
 
     @property
     def refresh_token(self):
-        try:
-            return self.access_token_content['refresh_token']
-        except:
-            info_logger.exception(
-                'Saved Refreshing Token invalid', exc_info=True)
+        _refresh_token = self.access_token_content.get('refresh_token')
+        if not _refresh_token:
+            return self.load_refresh_token()
+        return _refresh_token
 
+    def save_refresh_token(self, refresh_token):
+        with open('./src/config/refresh_token.json', 'w') as file:
+            file.write(refresh_token)
+
+    def load_refresh_token(self):
+        with open('./src/config/refresh_token.json', 'r') as file:
+            return file.read()
 
     def save_tokens(self):
         debug_logger.debug('Saving token to cache')

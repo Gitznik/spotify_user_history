@@ -1,11 +1,13 @@
 import requests
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 
 from .logging.logger import ApiLogger
 from .config.parse_config_files import AuthConfig
 from .client import Client
 from ._auth.auth_flows import RefreshingToken, AuthCodeRequest
 from .logging.logger import info_logger, debug_logger
+from .spotify_data.dataclasses import SpotifyHistory
 
 
 class SpotifyConnection(ABC):
@@ -46,9 +48,9 @@ class AuthorizationCodeFlow(SpotifyConnection):
         return self.get_refreshing_token(
             auth_code_request=auth_code_request)
 
-    def get_request(self, endpoint:str, id: str) -> dict:
-        url = f'{endpoint}{id}'
-        return requests.get(url=url, headers=self.get_req_header)
+    def get_request(self, endpoint:str, params: dict = None) -> dict:
+        url = f'{endpoint}'
+        return requests.get(url=url, headers=self.get_req_header, params=params)
 
 class ClientCredentialsFlow(SpotifyConnection):
     token_url = 'https://accounts.spotify.com/api/token'
@@ -80,6 +82,21 @@ class SpotifyInteraction:
     @ApiLogger('Sending Playlist Request')
     def get_playlist(self, playlistId):
         return self.conn.get_request(
-            endpoint= 'https://api.spotify.com/v1/playlists/',
-            id = playlistId
+            endpoint= f'https://api.spotify.com/v1/playlists/{playlistId}',
         )
+
+    @ApiLogger('Sending Play History Request')
+    def _get_play_history_req(self, start_point_unix_ms: int):
+        params = {
+            'limit': 20,
+            'after': start_point_unix_ms
+        }
+        return self.conn.get_request(
+            endpoint = 'https://api.spotify.com/v1/me/player/recently-played/',
+            params = params,
+        )
+
+    def get_play_history(self, start_point_unix_ms: int):
+        history_resp = self._get_play_history_req(
+            start_point_unix_ms=start_point_unix_ms)
+        return SpotifyHistory(**history_resp.json())

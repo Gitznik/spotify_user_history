@@ -4,6 +4,7 @@ __pycache__
 env
 .cache
 src/config/tokens.json
+src/config/refresh_token.json
 test.py
 htmlcov
 *.log
