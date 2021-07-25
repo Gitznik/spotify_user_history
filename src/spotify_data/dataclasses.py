@@ -1,6 +1,6 @@
 import pydantic
 from datetime import datetime, date
-from typing import List
+from typing import List, Optional
 
 from ..logging.logger import info_logger, debug_logger
 
@@ -58,47 +58,54 @@ class SpotifyHistoryObject(pydantic.BaseModel):
     context: SpotifyHistoryObjectContext
 
     def __init__(self, **data):
-        debug_logger.debug(f'Instantiate Spotify History Object for track {data["track"]["id"]}')
+        debug_logger.debug(f'Instantiate Spotify History Object for track' + 
+                            f'{data["track"]["id"]}')
         super().__init__(**data)
 
     class Config:
         allow_mutation = False
 
 class SpotifyCursor(pydantic.BaseModel):
-    before: int
-    after: int
+    before: Optional[int]
+    after: Optional[int]
 
     @property
     def before_datetime(self):
-        return datetime.utcfromtimestamp(
-            self.before / 1000).strftime("%Y-%m-%d %H:%M:%S")
+        if self.before:
+            return datetime.utcfromtimestamp(
+                self.before / 1000).strftime("%Y-%m-%d %H:%M:%S")
+        return None
 
     @property
     def after_datetime(self):
-        return datetime.utcfromtimestamp(
-            self.after / 1000).strftime("%Y-%m-%d %H:%M:%S")
+        if self.after:
+            return datetime.utcfromtimestamp(
+                self.after / 1000).strftime("%Y-%m-%d %H:%M:%S")
+        return None
 
     class Config:
         allow_mutation = False
 
 class SpotifyHistory(pydantic.BaseModel):
     items: List[SpotifyHistoryObject]
-    next: str
-    cursors: SpotifyCursor
+    next: Optional[str] = None
+    cursors: Optional[SpotifyCursor] = None
     limit: int
     href: str
-    is_last: bool = False
 
-    def __init__(self, **data):
+    def __init__(self, **data) -> None:
         info_logger.info(f'Instantiating Spotify History for {data["href"]}')
         super().__init__(**data)
-        info_logger.info(f'Done instantiating Spotify History from ' + 
-            f'{self.cursors.before_datetime} to {self.cursors.after_datetime}')
+        if self.is_last:
+            info_logger.info(f'Done instantiating final Spotify History')
+        else:
+            info_logger.info(f'Done instantiating Spotify History from ' + 
+                f'{self.cursors.before_datetime} to ' + 
+                f'{self.cursors.after_datetime}')
 
-    @pydantic.validator('is_last')
-    @classmethod
-    def populate_is_last(cls, v, values):
-        return bool(values.get['next'])
+    @property
+    def is_last(self) -> bool:
+        return bool(self.next)
 
     def __str__(self) -> str:
         return f'History contains {len(self.items)} tracks'
