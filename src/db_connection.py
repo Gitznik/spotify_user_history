@@ -57,7 +57,6 @@ class MongoConnection(DatabaseConnection):
         try:
             self.collection = self.conn[self.db][self.tbl]
         except pymongo.errors.InvalidName as e:
-            info_logger.exception(str(e))
             raise DbInvalidName(str(e))
 
 
@@ -70,7 +69,6 @@ class MongoConnection(DatabaseConnection):
             return client
         except pymongo.errors.ServerSelectionTimeoutError as e:
             info = f'Timeout for {self.host}:{self.port}, server not reachable'
-            info_logger.exception(info)
             raise DbConnectionTimeout(info)
         except:
             raise
