@@ -1,11 +1,13 @@
 from urllib.parse import urlencode, urlparse, parse_qs
-import requests
 import json
 
 from ..config.parse_config_files import AuthConfig
 from ..client import Client
 from .tokens import AccessToken
 from ..logging.logger import ApiLogger, info_logger, debug_logger, api_logger
+from ..config.configure_requests import configure_request
+
+conf_requests = configure_request()
 
 class AuthCodeRequest:
     auth_url = 'https://accounts.spotify.com/authorize'
@@ -98,7 +100,7 @@ class RefreshingToken:
             'Authorization': f'Basic {self.auth_code_request.client.get_auth_string()}'
         }
 
-        return requests.post(
+        return conf_requests.post(
             self.token_url, 
             data = data,
             headers = headers,

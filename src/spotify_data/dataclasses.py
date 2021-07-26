@@ -60,7 +60,7 @@ class SpotifyHistoryObjectContext(pydantic.BaseModel):
 class SpotifyHistoryObject(pydantic.BaseModel):
     played_at: datetime
     track: SpotifySong
-    context: SpotifyHistoryObjectContext
+    context: Optional[SpotifyHistoryObjectContext]
 
     def __init__(self, **data):
         debug_logger.debug(f'Instantiate Spotify History Object for track' + 
