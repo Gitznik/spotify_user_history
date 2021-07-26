@@ -55,10 +55,14 @@ class AuthCodeRequest:
         return self.auth_url + '?' + urlencode(params)
 
     def _parse_url_param(self, url, param):
-        query = urlparse(url).query
-        code = parse_qs(query).get(param, None)
-        info_logger.info(f'New authentification code for {self.scope} aquired')
-        return code[0]
+        try:
+            query = urlparse(url).query
+            code = parse_qs(query).get(param, None)
+            info_logger.info(f'New authentification code for {self.scope} aquired')
+            return code[0]
+        except ValueError as err:
+            info_logger.exception(str(err))
+            raise
         
 
 class RefreshingToken:
