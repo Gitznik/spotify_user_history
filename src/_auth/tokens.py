@@ -5,7 +5,8 @@ import os
 
 from ..logging.logger import info_logger, debug_logger
 from ..errors.token_errors import (
-    InvalidAccessTokenError, LostRefreshTokenError, InvalidDirectoryError)
+    InvalidAccessTokenError, LostRefreshTokenError)
+from ..errors.errors import InvalidDirectoryError
 
 
 class Token(ABC):
