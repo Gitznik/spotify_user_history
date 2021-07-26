@@ -2,6 +2,7 @@ import logging
 import logging.config
 from types import FunctionType
 import yaml
+from requests.exceptions import HTTPError
 
 with open('src/logging/log_conf.yaml', 'r') as conf:
     config = yaml.safe_load(conf.read())
@@ -20,7 +21,11 @@ def ApiLogger(msg:str = None):
                 result = func(*args, **kwargs)
                 api_logger.info(f'Finished Api Call: {msg}')
                 return result
+            except HTTPError as e:
+                api_logger.exception(f'Received error status code in {func.__name__}')
+                raise e
             except:
-                api_logger.exception(f'Encountered an exception in {func.__name__}')
+                api_logger.exception(f'Encountered an unexpected exception in {func.__name__}')
+                raise
         return wrapper
     return decorator
