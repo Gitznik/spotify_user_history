@@ -3,16 +3,14 @@ from pymongo import MongoClient
 from abc import ABC, abstractmethod
 import pytz
 from typing import List
+from datetime import datetime
 
 from .logging.logger import info_logger, debug_logger
 
 class DatabaseConnection(ABC):
 
-    def __init__(self, db: str, tbl: str) -> None:
-        self.db = db
-        self.tbl = tbl
+    def __init__(self) -> None:
         self.conn = self.create_connection()
-        self.collection = self.conn[self.db][self.tbl]
 
     def __enter__(self):
         return self
@@ -42,14 +40,27 @@ class DatabaseConnection(ABC):
 
 class MongoConnection(DatabaseConnection):
 
+    def __init__(
+            self, 
+            db: str, 
+            tbl: str, 
+            host: str = 'localhost', 
+            port: int = 27017):
+
+        self.db = db
+        self.tbl = tbl
+        self.host = host
+        self.port = port
+        super().__init__()
+        self.collection = self.conn[self.db][self.tbl]
 
     def create_connection(self) -> MongoClient:
-        return MongoClient('172.28.80.1', 27017)
+        return MongoClient(self.host, self.port)
 
     def close_connection(self) -> None:
         self.conn.close()
 
-    def find_newest(self):
+    def find_newest(self) -> datetime:
         newest_unaware = self.collection.find_one(
             sort=[('played_at', -1)])['played_at']
         return pytz.utc.localize(newest_unaware)
