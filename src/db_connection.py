@@ -10,7 +10,7 @@ from .logging.logger import info_logger, debug_logger
 class DatabaseConnection(ABC):
 
     def __init__(self) -> None:
-        self.conn = self.create_connection()
+        self.conn = self._create_connection()
 
     def __enter__(self):
         return self
@@ -23,7 +23,7 @@ class DatabaseConnection(ABC):
         pass
 
     @abstractmethod
-    def create_connection(self):
+    def _create_connection(self):
         pass
     
     @abstractmethod
@@ -54,7 +54,7 @@ class MongoConnection(DatabaseConnection):
         super().__init__()
         self.collection = self.conn[self.db][self.tbl]
 
-    def create_connection(self) -> MongoClient:
+    def _create_connection(self) -> MongoClient:
         return MongoClient(self.host, self.port)
 
     def close_connection(self) -> None:
