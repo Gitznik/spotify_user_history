@@ -55,6 +55,6 @@ class AuthConfig(YamlConfig):
             with open(self.file_path, 'w') as configuration:
                 return (yaml.dump(self.config, configuration, default_flow_style = False))
         except FileNotFoundError:
-            InvalidDirectoryError(
+            raise InvalidDirectoryError(
                 f'Excpected directory for saving' + 
                 f'{self.file_path} does not exist')
