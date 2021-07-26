@@ -4,14 +4,9 @@ from types import FunctionType
 import yaml
 from requests.exceptions import HTTPError
 
-from ..errors.errors import ConfigFileMissing
-
-try:
-    with open('src/logging/log_conf.yaml', 'r') as conf:
-        config = yaml.safe_load(conf.read())
-        logging.config.dictConfig(config)
-except FileNotFoundError:
-    raise ConfigFileMissing('Log config file missing.')
+with open('src/logging/log_conf.yaml', 'r') as conf:
+    config = yaml.safe_load(conf.read())
+    logging.config.dictConfig(config)
 
 info_logger = logging.getLogger('infoLogger')
 debug_logger = logging.getLogger('debugLogger')
