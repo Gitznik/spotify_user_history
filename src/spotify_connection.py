@@ -112,7 +112,8 @@ class SpotifyInteraction:
         try:
             return SpotifyHistory(**history_resp.json())
         except ValidationError as e:
-            info_logger.exception(f'SpotifyHistory parsing failed on {history_resp.json()}')
+            info_logger.exception(f'SpotifyHistory parsing failed on ' + 
+                                  f'\n{history_resp.json()}\n')
             raise e
 
 
