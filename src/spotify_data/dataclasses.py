@@ -1,5 +1,5 @@
 import pydantic
-from datetime import datetime, date
+from datetime import datetime, date, time
 from typing import List, Optional
 
 from ..logging.logger import info_logger, debug_logger
@@ -20,6 +20,11 @@ class SpotifyAlbum(pydantic.BaseModel):
     id: str
     name: str
     release_date: date
+
+    @pydantic.validator('release_date')
+    @classmethod
+    def format_date(cls, value) -> None:
+        return datetime.combine(value, time.min)
 
     class Config:
         allow_mutation = False
@@ -105,7 +110,8 @@ class SpotifyHistory(pydantic.BaseModel):
 
     @property
     def is_last(self) -> bool:
-        return bool(self.next)
+        debug_logger.debug(f'Is final Spotify History: {not bool(self.next)}')
+        return not bool(self.next)
 
     def __str__(self) -> str:
         return f'History contains {len(self.items)} tracks'

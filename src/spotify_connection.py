@@ -1,13 +1,15 @@
 import requests
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+from typing import List
 
+from .db_connection import DatabaseConnection
 from .logging.logger import ApiLogger
 from .config.parse_config_files import AuthConfig
 from .client import Client
 from ._auth.auth_flows import RefreshingToken, AuthCodeRequest
 from .logging.logger import info_logger, debug_logger
-from .spotify_data.dataclasses import SpotifyHistory
+from .spotify_data.dataclasses import SpotifyHistory, SpotifySong
 
 
 class SpotifyConnection(ABC):
@@ -32,18 +34,21 @@ class AuthorizationCodeFlow(SpotifyConnection):
         info_logger.info(f'AuthCodeFlow for scope {scope} successfull')
 
 
-    def get_auth_code(self, scope):
+    def get_auth_code(self, scope: str) -> AuthCodeRequest:
         return AuthCodeRequest(
             client = self.client, 
             auth_config = self.auth_config,
             scope = scope)
 
-    def get_refreshing_token(self, auth_code_request):
+    def get_refreshing_token(
+            self, auth_code_request: AuthCodeRequest) -> RefreshingToken:
+
         return RefreshingToken(
             auth_code_request= auth_code_request
         )
 
-    def authenticate(self, scope):
+    def authenticate(self, scope: str) -> RefreshingToken:
+
         auth_code_request = self.get_auth_code(scope)
         return self.get_refreshing_token(
             auth_code_request=auth_code_request)
@@ -62,7 +67,7 @@ class ClientCredentialsFlow(SpotifyConnection):
         }
 
     @ApiLogger('Athenticate in Client Credentials Flow')
-    def authenticate(self):
+    def authenticate(self) -> dict:
         headers = {'Authorization': f'Basic {self.client.get_auth_string()}'}
         data = {'grant_type': 'client_credentials'}
         return requests.post(
@@ -80,13 +85,15 @@ class SpotifyInteraction:
         self.conn = connection
 
     @ApiLogger('Sending Playlist Request')
-    def get_playlist(self, playlistId):
+    def get_playlist(self, playlistId) -> requests.Response:
         return self.conn.get_request(
             endpoint= f'https://api.spotify.com/v1/playlists/{playlistId}',
         )
 
     @ApiLogger('Sending Play History Request')
-    def _get_play_history_req(self, start_point_unix_ms: int):
+    def _get_play_history_req(
+            self, start_point_unix_ms: int) -> requests.Response:
+
         params = {
             'limit': 20,
             'after': start_point_unix_ms
@@ -96,7 +103,35 @@ class SpotifyInteraction:
             params = params,
         )
 
-    def get_play_history(self, start_point_unix_ms: int):
+    def _get_play_history(self, start_point_unix_ms: int) -> SpotifyHistory:
         history_resp = self._get_play_history_req(
             start_point_unix_ms=start_point_unix_ms)
         return SpotifyHistory(**history_resp.json())
+
+    def get_full_play_history(
+            self, start_point_unix_ms: int) -> List[SpotifySong]:
+
+        history = self._get_play_history(
+            start_point_unix_ms=start_point_unix_ms)
+        history_list = [history]
+        while not history_list[-1].is_last:
+            history_list.append(self._get_play_history(
+                start_point_unix_ms=history_list[-1].cursors.after))
+        return [item for hist in history_list for item in hist.items]
+
+    def get_new_play_history(
+            self, 
+            database_conn: DatabaseConnection,
+            fallback_datetime: datetime = datetime(
+                2021, 7, 24, 10, 0, tzinfo=timezone.utc)
+                ) -> List[SpotifySong]:
+        try:
+            start_point = database_conn.find_newest()
+            start_point_ts = round(start_point.timestamp() * 1000)
+            info_logger.info(f'Load play history after {start_point}')
+        except:
+            info_logger.warning('No existing start point found in MongoDB, ' + 
+                                f'use fallback timestamp {fallback_datetime}')
+            start_point_ts = round(fallback_datetime.timestamp() * 1000)
+
+        return self.get_full_play_history(start_point_ts)
