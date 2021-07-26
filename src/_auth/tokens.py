@@ -1,7 +1,11 @@
 import json
 from abc import ABC, abstractmethod
 import datetime
+import os
+
 from ..logging.logger import info_logger, debug_logger
+from ..errors.token_errors import (
+    InvalidAccessTokenError, LostRefreshTokenError, InvalidDirectoryError)
 
 
 class Token(ABC):
@@ -36,7 +40,7 @@ class AccessToken(Token):
         try:
             return self.access_token_content['access_token']
         except:
-            info_logger.exception('Saved Access Token invalid', exc_info=True)
+            raise InvalidAccessTokenError('Saved Access Token invalid')
 
     @property
     def refresh_token(self):
@@ -46,16 +50,35 @@ class AccessToken(Token):
         return _refresh_token
 
     def save_refresh_token(self, refresh_token):
-        with open('./src/config/refresh_token.json', 'w') as file:
-            file.write(refresh_token)
+        try:
+            with open('./src/config/refresh_token.json', 'w') as file:
+                file.write(refresh_token)
+        except FileNotFoundError:
+            raise InvalidDirectoryError(
+                'Directory for saving the refresh token does not exist')
 
     def load_refresh_token(self):
-        with open('./src/config/refresh_token.json', 'r') as file:
-            return file.read()
+        try:
+            with open('./src/config/refresh_token.json', 'r') as file:
+                return file.read()
+        except FileNotFoundError:
+            self.delete_tokens()
+            info = '''
+                Refresh token could not be recovered. 
+                Deleted saved access token.
+                '''
+            raise LostRefreshTokenError(info)
 
     def save_tokens(self):
         debug_logger.debug('Saving token to cache')
         token_information = self.access_token_content
         token_information['expires_at'] = self.expires_at.isoformat()
-        with open('./src/config/tokens.json', 'w') as file:
-            json.dump(token_information, file, indent=2)       
+        try:
+            with open('./src/config/tokens.json', 'w') as file:
+                json.dump(token_information, file, indent=2)
+        except FileNotFoundError:
+            raise InvalidDirectoryError(
+                'Directory for saving the access token does not exist')
+
+    def delete_tokens(self):
+        os.remove('./src/config/tokens.json')
