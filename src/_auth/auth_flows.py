@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
+from ..errors.token_errors import InvalidAccessTokenError
 from ..logging.logger import ApiLogger
 from ..config.parse_config_files import AuthConfig
 from ..client import Client
@@ -57,6 +58,7 @@ class AuthorizationCodeFlow(SpotifyConnection):
 
 class ClientCredentialsFlow(SpotifyConnection):
     token_url = 'https://accounts.spotify.com/api/token'
+
     def __init__(self) -> None:
         info_logger.info(f'Instantiate ClientCredentialsFlow')
         self.token_response = self.authenticate()
@@ -72,4 +74,7 @@ class ClientCredentialsFlow(SpotifyConnection):
             self.token_url, headers = headers, data = data).json()
 
     def extract_token(self) -> str:
-        return self.token_response['access_token']
+        try:
+            return self.token_response['access_token']
+        except KeyError as err:
+            raise InvalidAccessTokenError(str(err)) from err

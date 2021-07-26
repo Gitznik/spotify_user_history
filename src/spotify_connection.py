@@ -1,5 +1,4 @@
 import requests
-from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import List
 from pydantic.error_wrappers import ValidationError

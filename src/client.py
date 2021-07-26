@@ -6,7 +6,8 @@ class Client:
     client_config = ClientConfig()
 
     def get_auth_string(self) -> None:
-        client = f'{self.client_config.client_id}:{self.client_config.client_secret}'
+        client = (f'{self.client_config.client_id}' + 
+                    f':{self.client_config.client_secret}')
         return base64.b64encode(
             client.encode('ascii')
             ).decode('ascii')
