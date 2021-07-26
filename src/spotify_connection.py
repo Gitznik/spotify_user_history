@@ -2,6 +2,7 @@ import requests
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import List
+from pydantic.error_wrappers import ValidationError
 
 from .db_connection import DatabaseConnection
 from .logging.logger import ApiLogger
@@ -10,7 +11,9 @@ from .client import Client
 from ._auth.auth_flows import RefreshingToken, AuthCodeRequest
 from .logging.logger import info_logger, debug_logger
 from .spotify_data.dataclasses import SpotifyHistory, SpotifySong
+from .config.configure_requests import configure_request
 
+conf_requests = configure_request()
 
 class SpotifyConnection(ABC):
     client = Client()
@@ -55,7 +58,7 @@ class AuthorizationCodeFlow(SpotifyConnection):
 
     def get_request(self, endpoint:str, params: dict = None) -> dict:
         url = f'{endpoint}'
-        return requests.get(url=url, headers=self.get_req_header, params=params)
+        return conf_requests.get(url=url, headers=self.get_req_header, params=params)
 
 class ClientCredentialsFlow(SpotifyConnection):
     token_url = 'https://accounts.spotify.com/api/token'
@@ -70,7 +73,7 @@ class ClientCredentialsFlow(SpotifyConnection):
     def authenticate(self) -> dict:
         headers = {'Authorization': f'Basic {self.client.get_auth_string()}'}
         data = {'grant_type': 'client_credentials'}
-        return requests.post(
+        return conf_requests.post(
             self.token_url, headers = headers, data = data).json()
 
     def extract_token(self) -> str:
@@ -106,7 +109,12 @@ class SpotifyInteraction:
     def _get_play_history(self, start_point_unix_ms: int) -> SpotifyHistory:
         history_resp = self._get_play_history_req(
             start_point_unix_ms=start_point_unix_ms)
-        return SpotifyHistory(**history_resp.json())
+        try:
+            return SpotifyHistory(**history_resp.json())
+        except ValidationError as e:
+            info_logger.exception(f'SpotifyHistory parsing failed on {history_resp.json()}')
+            raise e
+
 
     def get_full_play_history(
             self, start_point_unix_ms: int) -> List[SpotifySong]:
