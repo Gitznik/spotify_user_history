@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import List
 from pydantic.error_wrappers import ValidationError
 
-from ._auth.auth_flows import SpotifyConnection
+from ._auth.auth_flows import AuthFlow
 from .db_connection import DatabaseConnection
 from .logging.logger import ApiLogger
 from .logging.logger import info_logger, debug_logger
@@ -16,7 +16,7 @@ conf_requests = configure_request()
 class SpotifyInteraction:
     def __init__(
             self, 
-            connection: SpotifyConnection) -> None:
+            connection: AuthFlow) -> None:
         info_logger.info(f'Instantiate SpotifyInteraction')
         self.conn = connection
 
