@@ -11,7 +11,7 @@ from ..config.configure_requests import configure_request
 
 conf_requests = configure_request()
 
-class SpotifyConnection(ABC):
+class AuthFlow(ABC):
     client = Client()
 
     @abstractmethod
@@ -22,7 +22,7 @@ class SpotifyConnection(ABC):
     def get_request():
         pass
 
-class AuthorizationCodeFlow(SpotifyConnection):
+class AuthorizationCodeFlow(AuthFlow):
     auth_config = AuthConfig()
     def __init__(self, scope: str = 'user-read-private') -> None:
         info_logger.info(f'Instantiate AuthCodeFlow for scope {scope}')
@@ -56,7 +56,7 @@ class AuthorizationCodeFlow(SpotifyConnection):
         url = f'{endpoint}'
         return conf_requests.get(url=url, headers=self.get_req_header, params=params)
 
-class ClientCredentialsFlow(SpotifyConnection):
+class ClientCredentialsFlow(AuthFlow):
     token_url = 'https://accounts.spotify.com/api/token'
 
     def __init__(self) -> None:
