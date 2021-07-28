@@ -7,4 +7,6 @@ src/config/tokens.json
 src/config/refresh_token.json
 test.py
 htmlcov
-*.log
+*.log*
+
+uml/*
