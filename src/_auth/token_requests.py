@@ -1,6 +1,7 @@
 from urllib.parse import urlencode, urlparse, parse_qs
 import json
 
+from ..errors.token_errors import InvalidAccessTokenError
 from ..config.parse_config_files import AuthConfig
 from ..client import Client
 from .tokens import AccessToken
@@ -114,7 +115,7 @@ class RefreshingToken:
         access_token_response = self._request_access_token(refresh)
         
         if access_token_response.status_code != 200:
-            raise ValueError('Acces token could not be retrieved')
+            raise InvalidAccessTokenError('Acces token could not be retrieved')
         return AccessToken(access_token_response.json())
 
     def _load_existing_access_token(self):
@@ -133,7 +134,7 @@ class RefreshingToken:
             info_logger.info(
                 'Try Load existing access token')
             return self._load_existing_access_token()
-        except:
+        except InvalidAccessTokenError:
             info_logger.info(
                 'Aquire new access token without existing refreshing token')
             return self._load_new_access_token(refresh)
