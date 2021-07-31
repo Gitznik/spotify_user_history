@@ -7,7 +7,8 @@ from ..errors.token_errors import InvalidAccessTokenError
 from ..config.parse_config_files import AuthConfig
 from ..client import Client
 from .tokens import AccessToken
-from ..logging.logger import ApiLogger, info_logger, debug_logger, api_logger
+from ..logging.logger import info_logger, debug_logger
+from ..request_utils import ApiLogger
 from ..config.configure_requests import configure_request
 
 conf_requests = configure_request()

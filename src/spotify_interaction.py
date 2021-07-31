@@ -5,7 +5,7 @@ from pydantic.error_wrappers import ValidationError
 
 from ._auth.auth_flows import AuthFlow
 from .db_connection import DatabaseConnection
-from .logging.logger import ApiLogger
+from .request_utils import ApiLogger
 from .logging.logger import info_logger, debug_logger
 from .spotify_data.dataclasses import SpotifyHistory, SpotifySong
 from .config.configure_requests import configure_request

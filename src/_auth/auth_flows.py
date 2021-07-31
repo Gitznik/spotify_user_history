@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from ..errors.token_errors import InvalidAccessTokenError, LostRefreshTokenError
-from ..logging.logger import ApiLogger
+from ..request_utils import ApiLogger
 from ..config.parse_config_files import AuthConfig
 from ..client import Client
 from .._auth.token_requests import RefreshingToken, AuthCodeRequest
@@ -86,3 +86,7 @@ class ClientCredentialsFlow(AuthFlow):
             return self.token_response['access_token']
         except KeyError as err:
             raise InvalidAccessTokenError(str(err)) from err
+
+    def get_request(self, endpoint:str, params: dict = None) -> dict:
+        url = f'{endpoint}'
+        return conf_requests.get(url=url, headers=self.get_req_header, params=params)
