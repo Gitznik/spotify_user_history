@@ -52,6 +52,7 @@ class AuthorizationCodeFlow(AuthFlow):
                     auth_code_request= auth_code_request
                 )
             except:
+                info_logger.exception()
                 raise
 
     def authenticate(self, scope: str) -> RefreshingToken:
