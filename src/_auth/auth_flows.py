@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from ..errors.token_errors import InvalidAccessTokenError
+from ..errors.token_errors import InvalidAccessTokenError, LostRefreshTokenError
 from ..logging.logger import ApiLogger
 from ..config.parse_config_files import AuthConfig
 from ..client import Client
@@ -41,10 +41,18 @@ class AuthorizationCodeFlow(AuthFlow):
 
     def get_refreshing_token(
             self, auth_code_request: AuthCodeRequest) -> RefreshingToken:
-
-        return RefreshingToken(
-            auth_code_request= auth_code_request
-        )
+        try:
+            return RefreshingToken(
+                auth_code_request= auth_code_request
+            )
+        except LostRefreshTokenError as e:
+            info_logger.warning(e)
+            try:
+                return RefreshingToken(
+                    auth_code_request= auth_code_request
+                )
+            except:
+                raise
 
     def authenticate(self, scope: str) -> RefreshingToken:
 
