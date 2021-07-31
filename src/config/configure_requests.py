@@ -3,7 +3,7 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import http
 
-def configure_request(debug_level: int = 0, retries: int = 3):
+def configure_request(debug_level: int = 0, retries: int = 3) -> requests.Session:
     http.client.HTTPConnection.debuglevel = debug_level
 
     request_session = requests.Session()

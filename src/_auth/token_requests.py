@@ -1,6 +1,8 @@
 from urllib.parse import urlencode, urlparse, parse_qs
 import json
 
+import requests
+
 from ..errors.token_errors import InvalidAccessTokenError
 from ..config.parse_config_files import AuthConfig
 from ..client import Client
@@ -35,7 +37,7 @@ class AuthCodeRequest:
         )
         return auth_code
 
-    def _prompt_user_authorization(self):
+    def _prompt_user_authorization(self) -> str:
         info_logger.info(
             f'Prompting user for authorization for scope {self.scope}')
         auth_url = self._create_auth_url()
@@ -55,7 +57,7 @@ class AuthCodeRequest:
         }
         return self.auth_url + '?' + urlencode(params)
 
-    def _parse_url_param(self, url, param):
+    def _parse_url_param(self, url: str, param: dict) -> str:
         try:
             query = urlparse(url).query
             code = parse_qs(query).get(param, None)
@@ -77,7 +79,7 @@ class RefreshingToken:
         self.auth_code_request = auth_code_request
         self.access_token = self._retrieve_access_token()
 
-    def get_access_token(self):
+    def get_access_token(self) -> str:
         info_logger.info('Request access token')
         if self.access_token.is_expired():
             info_logger.info(
@@ -86,7 +88,7 @@ class RefreshingToken:
         return self.access_token.access_token
 
     @ApiLogger(msg='Acquire access token')
-    def _request_access_token(self, refresh = False):
+    def _request_access_token(self, refresh: bool = False) -> requests.Response:
         if refresh:
             data = {
                 'grant_type': 'refresh_token',
@@ -111,21 +113,21 @@ class RefreshingToken:
             headers = headers,
             )
 
-    def _load_new_access_token(self, refresh = False):
+    def _load_new_access_token(self, refresh: bool  = False) -> AccessToken:
         access_token_response = self._request_access_token(refresh)
         
         if access_token_response.status_code != 200:
             raise InvalidAccessTokenError('Acces token could not be retrieved')
         return AccessToken(access_token_response.json())
 
-    def _load_existing_access_token(self):
+    def _load_existing_access_token(self) -> AccessToken:
         with open('./src/config/tokens.json', 'r') as file:
             access_token_content = json.load(file)
             return AccessToken(
                 access_token_content=access_token_content,
                 load_from_cache=True)
 
-    def _retrieve_access_token(self, refresh = False):
+    def _retrieve_access_token(self, refresh: bool = False) -> AccessToken:
         if refresh:
             info_logger.info(
                 'Aquire new access token with existing refreshing token')

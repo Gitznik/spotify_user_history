@@ -17,7 +17,7 @@ class DatabaseConnection(ABC):
     def __enter__(self):
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args) -> None:
         self.close_connection()
 
     @abstractmethod
@@ -47,7 +47,7 @@ class MongoConnection(DatabaseConnection):
             db: str, 
             tbl: str, 
             host: str = 'localhost', 
-            port: int = 27017):
+            port: int = 27017) -> None:
 
         self.db = db
         self.tbl = tbl

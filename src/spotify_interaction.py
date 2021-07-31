@@ -21,7 +21,7 @@ class SpotifyInteraction:
         self.conn = connection
 
     @ApiLogger('Sending Playlist Request')
-    def get_playlist(self, playlistId) -> requests.Response:
+    def get_playlist(self, playlistId: str) -> requests.Response:
         return self.conn.get_request(
             endpoint= f'https://api.spotify.com/v1/playlists/{playlistId}',
         )
