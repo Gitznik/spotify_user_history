@@ -2,10 +2,10 @@ from types import FunctionType
 from typing import Union
 from requests.exceptions import HTTPError
 from requests.models import Response
-from errors.http_errors import SpotifyHttpError
 import time
 
-from logging.logger import api_logger, info_logger, debug_logger
+from .errors.http_errors import SpotifyHttpError
+from .logging.logger import api_logger, info_logger, debug_logger
 
 def ApiLogger(msg:str = None, err_handling: bool = True):
     def decorator(func: FunctionType):
