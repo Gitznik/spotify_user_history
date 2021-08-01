@@ -1,6 +1,6 @@
 import requests
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 from pydantic.error_wrappers import ValidationError
 
 from ._auth.auth_flows import AuthFlow
@@ -21,10 +21,29 @@ class SpotifyInteraction:
         self.conn = connection
 
     @ApiLogger('Sending Playlist Request')
-    def get_playlist(self, playlistId: str) -> requests.Response:
+    def get_playlist(self, playlist_id: str) -> requests.Response:
         return self.conn.get_request(
-            endpoint= f'https://api.spotify.com/v1/playlists/{playlistId}',
+            endpoint= f'https://api.spotify.com/v1/playlists/{playlist_id}',
         )
+
+    @ApiLogger('Sending a Track request')
+    def _get_track_req(self, track_id: str, market: Optional[str] = None):
+        params = None
+        if market:
+            params = {'market': market}
+        return self.conn.get_request(
+            endpoint = f'https://api.spotify.com/v1/tracks/{track_id}',
+            params = params
+        )
+    
+    def get_track(self, track_id: str, market: Optional[str] = None):
+        track_resp = self._get_track_req(track_id=track_id, market=market)
+        try:
+            return SpotifySong(**track_resp.json())
+        except ValidationError as e:
+            info_logger.exception(f'SpotifyTrack parsing failed on ' + 
+                                  f'\n{track_resp.json()}\n')
+            raise e
 
     @ApiLogger('Sending Play History Request')
     def _get_play_history_req(
