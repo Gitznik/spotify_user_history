@@ -27,7 +27,10 @@ class SpotifyInteraction:
         )
 
     @ApiLogger('Sending a Track request')
-    def _get_track_req(self, track_id: str, market: Optional[str] = None):
+    def _get_track_req(
+            self, 
+            track_id: str, 
+            market: Optional[str] = None) -> requests.Response:
         params = None
         if market:
             params = {'market': market}
@@ -36,7 +39,10 @@ class SpotifyInteraction:
             params = params
         )
     
-    def get_track(self, track_id: str, market: Optional[str] = None):
+    def get_track(
+            self, 
+            track_id: str, 
+            market: Optional[str] = None) -> SpotifySong:
         track_resp = self._get_track_req(track_id=track_id, market=market)
         try:
             return SpotifySong(**track_resp.json())
