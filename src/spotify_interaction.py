@@ -1,6 +1,6 @@
 import requests
 from datetime import datetime, timezone
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Union
 from pydantic.error_wrappers import ValidationError
 
 from .errors.token_errors import MissingScopeError
@@ -167,4 +167,25 @@ class SpotifyInteraction:
         if type == 'tracks':
             return [SpotifySong(**track) for track in items['items']]
         return [SpotifyArtist(**artist) for artist in items['items']]
-        
+
+    @ApiLogger('Sending audio feature request')
+    def _get_audio_features_req(
+            self, track_id: str, multiple_tracks: bool = False) -> requests.Response:
+        if multiple_tracks:
+            params = {'ids': track_id}
+            return self.conn.get_request(
+                endpoint = f'https://api.spotify.com/v1/audio-features',
+                params = params
+            )
+        return self.conn.get_request(
+            endpoint = f'https://api.spotify.com/v1/audio-features/{track_id}'
+        )
+
+    def get_audio_features(
+            self, track_id: Union[str, List[str]]) -> Union[dict, List[dict]]:
+        if type(track_id) == list:
+            tracks = ','.join(track_id)
+            audio_features = self._get_audio_features_req(
+                tracks, True).json()
+            return [feature for feature in audio_features['audio_features']]
+        return self._get_audio_features_req(track_id).json()
