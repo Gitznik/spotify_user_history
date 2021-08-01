@@ -2,10 +2,11 @@ import json
 from abc import ABC, abstractmethod
 import datetime
 import os
+from typing import List
 
 from ..logging.logger import info_logger, debug_logger
 from ..errors.token_errors import (
-    InvalidAccessTokenError, LostRefreshTokenError)
+    InvalidAccessTokenError, LostRefreshTokenError, MissingScopeError)
 from ..errors.errors import InvalidDirectoryError
 
 
@@ -54,6 +55,13 @@ class AccessToken(Token):
             return self.load_refresh_token()
         return _refresh_token
 
+    @property
+    def scopes(self) -> List[str]:
+        scopes = self.access_token_content.get('scope')
+        if not scopes:
+            raise MissingScopeError(msg='No scopes defined in the access token')
+        return scopes.split(sep=' ')
+
     def save_refresh_token(self, refresh_token: str) -> None:
         try:
             with open('./src/config/refresh_token.json', 'w') as file:
@@ -87,3 +95,4 @@ class AccessToken(Token):
 
     def delete_tokens(self) -> None:
         os.remove('./src/config/tokens.json')
+        os.remove('./src/config/refresh_token.json')
