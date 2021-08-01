@@ -137,7 +137,7 @@ class RefreshingToken:
             info_logger.info(
                 'Try Load existing access token')
             return self._load_existing_access_token()
-        except InvalidAccessTokenError:
+        except (InvalidAccessTokenError, FileNotFoundError):
             info_logger.info(
                 'Aquire new access token without existing refreshing token')
             return self._load_new_access_token(refresh)

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from ..errors.token_errors import InvalidAccessTokenError, LostRefreshTokenError
+from ..errors.token_errors import InvalidAccessTokenError, LostRefreshTokenError, MissingScopeError
 from ..request_utils import ApiLogger
 from ..config.parse_config_files import AuthConfig
 from ..client import Client
@@ -22,16 +22,32 @@ class AuthFlow(ABC):
     def get_request():
         pass
 
+    @abstractmethod
+    def check_scope(scope: str):
+        pass
+
+    @abstractmethod
+    def reset_refreshing_token(scope: str):
+        pass
+
 class AuthorizationCodeFlow(AuthFlow):
     auth_config = AuthConfig()
     def __init__(self, scope: str = 'user-read-private') -> None:
+        self.scope = scope
         info_logger.info(f'Instantiate AuthCodeFlow for scope {scope}')
         self.refreshing_token = self.authenticate(scope)
-        self.get_req_header = {
-            "Authorization": "Bearer " + self.refreshing_token.get_access_token()
-        }
         info_logger.info(f'AuthCodeFlow for scope {scope} successfull')
 
+    @property
+    def get_req_header(self):
+        return {
+            "Authorization": "Bearer " + self.refreshing_token.get_access_token()
+        }
+
+    def reset_refreshing_token(self, scope: str) -> None:
+        self.refreshing_token.access_token.delete_tokens()
+        self.scope += f' {scope}'
+        self.refreshing_token = self.authenticate(self.scope)
 
     def get_auth_code(self, scope: str) -> AuthCodeRequest:
         return AuthCodeRequest(
@@ -65,6 +81,13 @@ class AuthorizationCodeFlow(AuthFlow):
         url = f'{endpoint}'
         return conf_requests.get(url=url, headers=self.get_req_header, params=params)
 
+    def check_scope(self, scope: str):
+        authorized_scopes = self.refreshing_token._retrieve_access_token().scopes
+        if scope not in authorized_scopes:
+            raise MissingScopeError(
+                msg='Not authorized for required scope', scope=scope)
+        
+
 class ClientCredentialsFlow(AuthFlow):
     token_url = 'https://accounts.spotify.com/api/token'
 
@@ -91,3 +114,6 @@ class ClientCredentialsFlow(AuthFlow):
     def get_request(self, endpoint:str, params: dict = None) -> dict:
         url = f'{endpoint}'
         return conf_requests.get(url=url, headers=self.get_req_header, params=params)
+
+    def check_scope(scope: str):
+        pass
