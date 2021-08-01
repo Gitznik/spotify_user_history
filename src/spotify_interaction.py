@@ -8,7 +8,7 @@ from ._auth.auth_flows import AuthFlow
 from .db_connection import DatabaseConnection
 from .request_utils import ApiLogger
 from .logging.logger import info_logger, debug_logger
-from .spotify_data.dataclasses import SpotifyHistory, SpotifySong
+from .spotify_data.dataclasses import SpotifyArtist, SpotifyHistory, SpotifySong
 from .config.configure_requests import configure_request
 
 conf_requests = configure_request()
@@ -151,17 +151,20 @@ class SpotifyInteraction:
             time_range: Literal[
                 'short_term', 'medium_term', 'long_term'] = 'medium_term',
             limit: int = 20,
-            offset: int = 0) -> dict:
+            offset: int = 0) -> List[SpotifySong]:
         try:
-            return self._get_top_artists_or_tracks_req(
+            items = self._get_top_artists_or_tracks_req(
                 type, time_range, limit, offset).json()
         except MissingScopeError:
             info_logger.warning(
                 f'Scope not authorized', exc_info=True)
             self.conn.reset_refreshing_token('user-top-read')
             try:
-                return self._get_top_artists_or_tracks_req(
+                items = self._get_top_artists_or_tracks_req(
                     type, time_range, limit, offset).json()
             except:
                 raise
+        if type == 'tracks':
+            return [SpotifySong(**track) for track in items['items']]
+        return [SpotifyArtist(**artist) for artist in items['items']]
         
