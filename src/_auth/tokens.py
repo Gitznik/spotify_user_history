@@ -2,7 +2,7 @@ import json
 from abc import ABC, abstractmethod
 import datetime
 import os
-from typing import List
+from typing import Set
 
 from ..logging.logger import info_logger, debug_logger
 from ..errors.token_errors import (
@@ -56,11 +56,11 @@ class AccessToken(Token):
         return _refresh_token
 
     @property
-    def scopes(self) -> List[str]:
+    def scopes(self) -> Set[str]:
         scopes = self.access_token_content.get('scope')
         if not scopes:
             raise MissingScopeError(msg='No scopes defined in the access token')
-        return scopes.split(sep=' ')
+        return set(scopes.split(sep=' '))
 
     def save_refresh_token(self, refresh_token: str) -> None:
         try:
