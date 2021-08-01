@@ -16,14 +16,15 @@ def ApiLogger(msg:str = None, err_handling: bool = True):
                 api_logger.info(f'Finished Api Call: {msg}')
                 return result
             except HTTPError as e:
-                api_logger.warning(
-                    f'Received error status code in {func.__name__}')
-                result = RequestErrorFactory(e)
-                if type(result) is not SpotifyHttpError:
-                    return result
                 try:
+                    api_logger.warning(
+                        f'Received error status code in {func.__name__}')
+                    result = RequestErrorFactory(
+                        e, func, *args, **kwargs).evaluate_action()
+                    if type(result) is not SpotifyHttpError:
+                        return result
                     raise result
-                except e:
+                except SpotifyHttpError as e:
                     api_logger.exception('Could not handle API error')
                     raise e from None
             except:
@@ -34,9 +35,13 @@ def ApiLogger(msg:str = None, err_handling: bool = True):
     return decorator
 
 class RequestErrorFactory:
-    error: HTTPError
 
-    def __init__(self, func, *args, **kwargs) -> None:
+    def __init__(
+            self, 
+            error: HTTPError, 
+            func: FunctionType, 
+            *args, **kwargs) -> None:
+        self.error = error
         self.func = func
         self.response = self.error.response
         self.request = self.error.request
@@ -45,12 +50,16 @@ class RequestErrorFactory:
         self.evaluate_action(*args, **kwargs)
 
     def unauthorized(self) -> SpotifyHttpError:
+        debug_logger.debug('Trying to resolve unauthorized request error')
         msg = ''' Please make sure you are using a authentification flow with
-        access to the data you are requesting, and a matching scope.'''
+        access to the data you are requesting, and a matching scope./n
+        If you are accessing another users data, you may not be authorized to 
+        do so.'''
         return self.create_error(msg)
 
 
     def not_found(self, *args, **kwargs) -> Union[SpotifyHttpError, Response]:
+        debug_logger.debug('Trying to resolve object not found error')
         self.wait()
         try:
             return self.func(*args, **kwargs)
@@ -60,6 +69,7 @@ class RequestErrorFactory:
             return self.create_error(msg)
 
     def rate_limited(self, *args, **kwargs):
+        debug_logger.debug('Trying to resolve Rate Limited error')
         try:
             retry_after = self.response.headers['Retry-After']
         except KeyError as e:
@@ -74,15 +84,18 @@ class RequestErrorFactory:
         time.sleep(seconds)
 
     def create_error(self, msg: str = '') -> SpotifyHttpError:
-        return SpotifyHttpError(e = self.error, msg = msg), True
+        return SpotifyHttpError(e = self.error, msg = msg)
 
     def evaluate_action(self, *args, **kwargs):
         status = self.status_code
-        if status == 401:
+        debug_logger.debug(f'Evaluating action for code {status}')
+        if status in [401, 403]:
             return self.unauthorized()
         if status == 404:
             return self.not_found(*args, **kwargs)
         if status == 429:
             return self.rate_limited(*args, **kwargs)
-        else:
-            return self.create_error()
+        debug_logger.debug(
+            'No exception handling found for this error code, ' + 
+            'raise generic error')
+        return self.create_error()
