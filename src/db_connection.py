@@ -3,8 +3,10 @@ from pymongo import MongoClient
 from abc import ABC, abstractmethod
 import pymongo
 import pytz
-from typing import List
+from typing import List, Optional
 from datetime import datetime
+import pandas as pd
+from pathlib import Path
 
 from .logging.logger import info_logger, debug_logger
 from .errors.database_errors import DbConnectionTimeout, DbInvalidName
@@ -95,14 +97,31 @@ class MongoConnection(DatabaseConnection):
 
     def save_one(self, data: pydantic.BaseModel) -> None:
         inserted = self.collection.insert_one(data.dict())
-        info_logger.info(f'Inserted {inserted.inserted_id}')
+        debug_logger.debug(f'Inserted {inserted.inserted_id}')
 
 
-    def save_many(self, data: List[pydantic.BaseModel]) -> None:
+    def save_many(
+            self, 
+            data: List[pydantic.BaseModel], 
+            save_csv: bool = True,
+            csv_path: Path = Path('data/songs.csv')) -> None:
         data_parsed = [item.dict() for item in data]
+        if save_csv:
+            self._save_csv_copy(data_parsed, csv_path)
         inserted = self.collection.insert_many(data_parsed)
-        info_logger.info(f'Inserted {inserted.inserted_ids}')
+        debug_logger.debug(f'Inserted {inserted.inserted_ids}')
         
+    @staticmethod
+    def _save_csv_copy(
+            parsed_data: List[dict], 
+            path: Path = Path('data/songs.csv')) -> None:
+        mode = 'a' if bool(path.exists()) else 'w'
+        use_headers = not bool(path.exists())
+        
+        info_logger.info('Saving csv copy of the data')
+        df = pd.json_normalize(parsed_data)
+        df.to_csv(
+            'data/songs.csv', mode = mode, header=use_headers, index=False)
 
     def reset_collection(self) -> None:
         self.collection.delete_many({})
