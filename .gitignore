@@ -8,5 +8,6 @@ src/config/refresh_token.json
 test.py
 htmlcov
 *.log*
+data/
 
 uml/*
