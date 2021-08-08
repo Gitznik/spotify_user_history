@@ -1,0 +1,128 @@
+{
+  "data_asset_type": "Dataset",
+  "expectation_suite_name": "history.songs",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_columns_to_match_ordered_list",
+      "kwargs": {
+        "column_list": [
+          "played_at",
+          "track.artists",
+          "track.album.album_type",
+          "track.album.artists",
+          "track.album.id",
+          "track.album.name",
+          "track.album.release_date",
+          "track.duration_ms",
+          "track.explicit",
+          "track.href",
+          "track.id",
+          "track.name",
+          "track.popularity",
+          "context.type",
+          "context.uri"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": {
+        "max_value": 999999999999,
+        "min_value": 1
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "played_at"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_dateutil_parseable",
+      "kwargs": {
+        "column": "played_at"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_mean_to_be_between",
+      "kwargs": {
+        "column": "track.duration_ms",
+        "max_value": 1200000,
+        "min_value": 120000
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_min_to_be_between",
+      "kwargs": {
+        "column": "track.duration_ms",
+        "max_value": 1200000,
+        "min_value": 0
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_max_to_be_between",
+      "kwargs": {
+        "column": "track.duration_ms",
+        "max_value": 1200000,
+        "min_value": 120000
+      },
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "columns": {
+      "context.type": {
+        "description": ""
+      },
+      "context.uri": {
+        "description": ""
+      },
+      "played_at": {
+        "description": ""
+      },
+      "track.album.album_type": {
+        "description": ""
+      },
+      "track.album.artists": {
+        "description": ""
+      },
+      "track.album.id": {
+        "description": ""
+      },
+      "track.album.name": {
+        "description": ""
+      },
+      "track.album.release_date": {
+        "description": ""
+      },
+      "track.artists": {
+        "description": ""
+      },
+      "track.duration_ms": {
+        "description": ""
+      },
+      "track.explicit": {
+        "description": ""
+      },
+      "track.href": {
+        "description": ""
+      },
+      "track.id": {
+        "description": ""
+      },
+      "track.name": {
+        "description": ""
+      },
+      "track.popularity": {
+        "description": ""
+      }
+    },
+    "great_expectations_version": "0.13.26"
+  }
+}
