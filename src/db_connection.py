@@ -54,10 +54,7 @@ class MongoConnection(DatabaseConnection):
         self.host = host
         self.port = port
         super().__init__()
-        try:
-            self.collection = self.conn[self.db][self.tbl]
-        except pymongo.errors.InvalidName as e:
-            raise DbInvalidName(str(e))
+        self.collection = self._define_collection(db, tbl)
 
 
     def _create_connection(self) -> MongoClient:
@@ -72,6 +69,18 @@ class MongoConnection(DatabaseConnection):
             raise DbConnectionTimeout(info)
         except:
             raise
+
+    def _define_collection(self, db: str, tbl: str) -> MongoClient:
+        if db not in {database['name'] for database in self.conn.list_databases()}:
+            info_logger.warn(
+                f'Database {db} does not exist and will be created')
+        if tbl not in {coll for coll in self.conn[db].list_collection_names()}:
+            info_logger.warn(
+                f'Collection {tbl} does not exist and will be created')
+        try:
+            return self.conn[db][tbl]
+        except pymongo.errors.InvalidName as e:
+            raise DbInvalidName(str(e))
 
     def close_connection(self) -> None:
         debug_logger.debug(
