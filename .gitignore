@@ -10,4 +10,4 @@ htmlcov
 *.log*
 data/
 
-uml/*
+var/UML/*
