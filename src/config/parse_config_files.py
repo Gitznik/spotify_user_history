@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 
 from ..errors.config_errors import MissingConfigError
 from ..errors.errors import InvalidDirectoryError
+from ..logging.logger import info_logger
 
 class YamlConfig(ABC):
     def __init__(self, file_name: str) -> None:
@@ -38,7 +39,13 @@ class AuthConfig(YamlConfig):
         self.read_secrets()
 
     def read_secrets(self):
-        config = self.load_config()
+        try:
+            config = self.load_config()
+        except MissingConfigError as e:
+            info_logger.warning(
+                f'{e}, procees without loading existing secrets')
+            config = None
+
         self.config = config or {}
         self.scopes = config.keys() if config else []
 
