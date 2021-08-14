@@ -63,17 +63,22 @@ class SqlLiteConnection(DatabaseConnection):
             debug_logger.debug(
                 f'Connecting to SqlLite Database {self.file_path}')
             return sqlite3.connect(self.file_path)
-        except:
-            raise
+        except sqlite3.OperationalError as e:
+            info_logger.exception('Path to the database could not be found. ' + 
+                'Make sure the Path exists')
 
     def close_connection(self):
         debug_logger.debug(
             f'Closing SqlLite Database {self.file_path}')
         self.conn.close()
 
-    def find_newest(self):
-        sql = f'SELECT MAX(played_at) FROM {self.tbl}'
-        return parse(self.conn.execute(sql).fetchall()[0][0])
+    def find_newest(self) -> datetime.timestamp:
+        try:
+            sql = f'SELECT MAX(played_at) FROM {self.tbl}'
+            return parse(self.conn.execute(sql).fetchall()[0][0])
+        except sqlite3.OperationalError as e:
+            info_logger.warning('Tried to access latest entry in non existing table')
+            return None
 
     def save_one(self, data: pydantic.BaseModel) -> None:
         df = self._prepare_song_history(data)
