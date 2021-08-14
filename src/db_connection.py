@@ -2,11 +2,14 @@ import pydantic
 from pymongo import MongoClient
 from abc import ABC, abstractmethod
 import pymongo
+import sqlite3
 import pytz
 from typing import List, Optional
 from datetime import datetime
 import pandas as pd
 from pathlib import Path
+import os
+from dateutil.parser import parse
 
 from .logging.logger import info_logger, debug_logger
 from .errors.database_errors import DbConnectionTimeout, DbInvalidName
@@ -41,6 +44,67 @@ class DatabaseConnection(ABC):
     @abstractmethod
     def find_newest(self):
         pass
+
+class SqlLiteConnection(DatabaseConnection):
+    def __init__(
+            self, 
+            tbl: str, 
+            db: str = 'spotify_data.db', 
+            path: str = '../data/') -> None:
+
+        self.db = db
+        self.tbl = tbl
+        self.file_path = os.path.join(
+            os.path.dirname(__file__), (path + db))
+        super().__init__()
+
+    def _create_connection(self) -> sqlite3.Connection:
+        try:
+            debug_logger.debug(
+                f'Connecting to SqlLite Database {self.file_path}')
+            return sqlite3.connect(self.file_path)
+        except:
+            raise
+
+    def close_connection(self):
+        debug_logger.debug(
+            f'Closing SqlLite Database {self.file_path}')
+        self.conn.close()
+
+    def find_newest(self):
+        sql = f'SELECT MAX(played_at) FROM {self.tbl}'
+        return parse(self.conn.execute(sql).fetchall()[0][0])
+
+    def save_one(self, data: pydantic.BaseModel) -> None:
+        df = self._prepare_song_history(data)
+        df.to_sql(self.tbl, self.conn, if_exists='append', index=False)
+
+    def save_many(self, data: List[pydantic.BaseModel]) -> None:
+        data_parsed = [item.dict() for item in data]
+        df = self._prepare_song_history(data_parsed)
+        df.to_sql(self.tbl, self.conn, if_exists='append', index=False)
+
+    def _prepare_song_history(self, data: pydantic.BaseModel) -> pd.DataFrame:
+        columns = [
+            'played_at', 
+            'track.artists', 
+            'track.album.album_type', 
+            'track.album.artists', 
+            'track.album.id', 
+            'track.album.name', 
+            'track.album.release_date', 
+            'track.duration_ms', 
+            'track.explicit', 
+            'track.href', 
+            'track.id', 
+            'track.name', 
+            'track.popularity']
+        column_types = {
+            'track.artists': 'str',
+            'track.album.artists': 'str'
+        }
+        df = pd.json_normalize(data)
+        return df.astype(column_types)[columns]
 
 class MongoConnection(DatabaseConnection):
 
