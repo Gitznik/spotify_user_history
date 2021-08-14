@@ -1,0 +1,1 @@
+Run tests with `coverage run -m unittest tests.file_name` for specific files or `coverage run -m unittest discover tests` for running all tests.
